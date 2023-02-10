@@ -21,11 +21,11 @@ const db = new sqlite3.Database(':memory:', (err) => {
 db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, password TEXT, balance REAL)");
     db.run("CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY, user_id INTEGER, type TEXT, amount REAL, date TEXT)");
-    db.run("insert into users (id, username, passsword, balance) values (1, 'anoddle0', 'aEkjrg', 526855);")
-    db.run("insert into users (id, username, passsword, balance) values (2, 'acarpe1', 'TqEBrR2V', 690258);")
-    db.run("insert into users (id, username, passsword, balance) values (3, 'wguerreiro2', '8nX01m', 153322);")
-    db.run("insert into users (id, username, passsword, balance) values (4, 'favramovsky3', 'QsYDtY6e', 341152);")
-    db.run("insert into users (id, username, passsword, balance) values (5, 'fjudkins4', 'xnLkXjPD', 758792)")
+    db.run("insert into users (id, username, password, balance) values (1, 'anoddle0', 'aEkjrg', 526855);")
+    db.run("insert into users (id, username, password, balance) values (2, 'acarpe1', 'TqEBrR2V', 690258);")
+    db.run("insert into users (id, username, password, balance) values (3, 'wguerreiro2', '8nX01m', 153322);")
+    db.run("insert into users (id, username, password, balance) values (4, 'favramovsky3', 'QsYDtY6e', 341152);")
+    db.run("insert into users (id, username, password, balance) values (5, 'fjudkins4', 'xnLkXjPD', 758792)")
     db.run("insert into transactions (id, user_id, type, amount, date) values (1, 1, 'deposit', 129526, '4/9/2022')")
     db.run("insert into transactions (id, user_id, type, amount, date) values (2, 2, 'withdrawal', 368235, '11/15/2022')")
     db.run("insert into transactions (id, user_id, type, amount, date) values (3, 3, 'deposit', 942675, '10/6/2022')")
@@ -35,7 +35,15 @@ db.serialize(function() {
 
 // middleware function
 const authenticate = (req, res, next) => {
-    const { username, password } = req.body;
+
+    const { username} = req.body.username;
+    const {password} = req.body.password;
+    
+    if (!req.body || !req.body.username) {
+        return res.status(400).json({ message: "Bad Request: Missing 'username' in request body." });
+      }
+      
+    
     db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password], (err, row) => {
       if (err) {
         return res.status(500).json({ error: 'An error occurred while authenticating user' });
