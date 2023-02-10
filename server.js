@@ -21,6 +21,16 @@ const db = new sqlite3.Database(':memory:', (err) => {
 db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, password TEXT, balance REAL)");
     db.run("CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY, user_id INTEGER, type TEXT, amount REAL, date TEXT)");
+    db.run("insert into users (id, username, passsword, balance) values (1, 'anoddle0', 'aEkjrg', 526855);")
+    db.run("insert into users (id, username, passsword, balance) values (2, 'acarpe1', 'TqEBrR2V', 690258);")
+    db.run("insert into users (id, username, passsword, balance) values (3, 'wguerreiro2', '8nX01m', 153322);")
+    db.run("insert into users (id, username, passsword, balance) values (4, 'favramovsky3', 'QsYDtY6e', 341152);")
+    db.run("insert into users (id, username, passsword, balance) values (5, 'fjudkins4', 'xnLkXjPD', 758792)")
+    db.run("insert into transactions (id, user_id, type, amount, date) values (1, 1, 'deposit', 129526, '4/9/2022')")
+    db.run("insert into transactions (id, user_id, type, amount, date) values (2, 2, 'withdrawal', 368235, '11/15/2022')")
+    db.run("insert into transactions (id, user_id, type, amount, date) values (3, 3, 'deposit', 942675, '10/6/2022')")
+    db.run("insert into transactions (id, user_id, type, amount, date) values (4, 4, 'withdrawal', 161507, '1/4/2023')")
+    db.run("insert into transactions (id, user_id, type, amount, date) values (5, 5, 'deposit', 673746, '10/20/2022')")
   });
 
 // middleware function
@@ -82,6 +92,43 @@ app.post('/deposit', authenticate, (req, res) => {
           });
       });
   });
+
+// withdrawal router
+app.post('/withdrawal', authenticate, (req, res) => {
+    const { amount } = req.body;
+    if (amount > MAX_WITHDRAWAL_AMOUNT) {
+        return res.status(400).json({ error: 'Exceeded Maximum Withdrawal Per Transaction' });
+    }
+    if (req.user.balance < amount) {
+        return res.status(400).json({ error: 'Insufficient funds' });
+    }
+    db.all("SELECT * FROM transactions WHERE user_id = ? AND type = 'withdrawal' AND date = ?", [req.user.id, new Date().toDateString()], (err, rows) => {
+    if (err) {
+        return res.status(500).json({ error: 'An error occurred while checking withdrawal transactions' });
+    }
+    if (rows.length >= MAX_WITHDRAWAL_FREQUENCY) {
+        return res.status(400).json({ error: 'Exceeded Maximum Withdrawal Frequency' });
+    }
+    
+
+    let totalWithdrawal = rows.reduce((sum, row) => sum + row.amount, 0);
+    totalWithdrawal += amount;
+    if (totalWithdrawal > MAX_WITHDRAWAL_TOTAL) {
+        return res.status(400).json({ error: 'Exceeded Maximum Withdrawal For The Day' });
+    }
+    db.run("UPDATE users SET balance = balance - ? WHERE id = ?", [amount, req.user.id], function(err) {
+    if (err) {
+        return res.status(500).json({ error: 'An error occurred while updating balance' });
+    }
+    db.run("INSERT INTO transactions (user_id, type, amount, date) VALUES (?, 'withdrawal', ?, ?)", [req.user.id, amount, new Date().toDateString()], function(err) {
+    if (err) {
+        return res.status(500).json({ error: 'An error occurred while adding withdrawal transaction' });
+    }
+    return res.status(200).json({ message: 'Withdrawal successful' });
+  });
+});
+});
+});
 
 app.listen(PORT, () =>{
     console.log('Bank API Server Running.................')
