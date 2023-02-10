@@ -50,6 +50,39 @@ app.get('/balance', authenticate, (req, res) => {
     return res.status(200).json({ balance: req.user.balance });
   });
 
+
+// deposit router
+app.post('/deposit', authenticate, (req, res) => {
+    const { amount } = req.body;
+    if (amount > MAX_DEPOSIT_AMOUNT) {
+      return res.status(400).json({ error: 'Exceeded Maximum Deposit Per Transaction' });
+    }
+    db.all("SELECT * FROM transactions WHERE user_id = ? AND type = 'deposit' AND date = ?", [req.user.id, new Date().toDateString()], (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: 'An error occurred while checking deposit transactions' });
+      }
+      if (rows.length >= MAX_DEPOSIT_FREQUENCY) {
+        return res.status(400).json({ error: 'Exceeded Maximum Deposit Frequency' });
+      }
+      let totalDeposit = rows.reduce((sum, row) => sum + row.amount, 0);
+      totalDeposit += amount;
+      if (totalDeposit > MAX_DEPOSIT_TOTAL) {
+          return res.status(400).json({ error: 'Exceeded Maximum Deposit For The Day' });
+      }
+      db.run("UPDATE users SET balance = balance + ? WHERE id = ?", [amount, req.user.id], function(err) {
+      if (err) {
+          return res.status(500).json({ error: 'An error occurred while updating balance' });
+      }
+      db.run("INSERT INTO transactions (user_id, type, amount, date) VALUES (?, 'deposit', ?, ?)", [req.user.id, amount, new Date().toDateString()], function(err) {
+      if (err) {
+          return res.status(500).json({ error: 'An error occurred while adding deposit transaction' });
+      }
+      return res.status(200).json({ message: 'Deposit successful' });
+              });
+          });
+      });
+  });
+
 app.listen(PORT, () =>{
     console.log('Bank API Server Running.................')
 })
