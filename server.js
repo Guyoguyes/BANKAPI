@@ -23,6 +23,22 @@ db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY, user_id INTEGER, type TEXT, amount REAL, date TEXT)");
   });
 
+// authentication router
+app.post('/authenticate', (req, res) => {
+    const {username, password} = req.body;
+    db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password], (err, row) => {
+        if (err) {
+          return res.status(500).json({ error: 'An error occurred while authenticating user' });
+        }
+        if (!row) {
+          return res.status(401).json({ error: 'Incorrect username or password' });
+        }
+        req.user = row;
+        next();
+    });
+    return res.status(200).json({ message: 'Authentication successful' });
+})
+
 app.listen(PORT, () =>{
     console.log('Bank API Server Running.................')
 })
