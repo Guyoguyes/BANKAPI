@@ -36,13 +36,13 @@ db.serialize(function() {
 // middleware function
 const authenticate = (req, res, next) => {
 
-    const { username} = req.body.username;
-    const {password} = req.body.password;
+    
     
     if (!req.body || !req.body.username) {
         return res.status(400).json({ message: "Bad Request: Missing 'username' in request body." });
       }
-      
+      const { username} = 'test';
+    const {password} = 'test';
     
     db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password], (err, row) => {
       if (err) {
